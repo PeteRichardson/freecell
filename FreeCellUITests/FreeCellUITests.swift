@@ -12,7 +12,23 @@ final class FreeCellUITests: XCTestCase {
         app.launch()
     }
 
+    override func tearDown() {
+        XCUIDevice.shared.orientation = .portrait
+    }
+
     private func card(_ name: String) -> XCUIElement { app.images[name] }
+
+    /// Turns the device, then waits until the window has the new shape and the turn animation is done.
+    private func turn(to orientation: UIDeviceOrientation) {
+        XCUIDevice.shared.orientation = orientation
+        let window = app.windows.firstMatch
+        let deadline = Date().addingTimeInterval(5)
+        while (window.frame.width > window.frame.height) != orientation.isLandscape, Date() < deadline {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        }
+        XCTAssertEqual(window.frame.width > window.frame.height, orientation.isLandscape)
+        RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+    }
 
     func testTapSendsCardToFreeCell() {
         XCTAssertTrue(app.staticTexts["Game #1"].waitForExistence(timeout: 5))
@@ -57,5 +73,18 @@ final class FreeCellUITests: XCTestCase {
         alert.buttons["New Game"].tap()
         XCTAssertTrue(app.staticTexts["Moves: 0"].waitForExistence(timeout: 2))
         XCTAssertFalse(app.staticTexts["Game #1"].exists)
+    }
+
+    func testPlayInLandscapeThenTurnBack() {
+        XCTAssertTrue(app.staticTexts["Game #1"].waitForExistence(timeout: 5))
+        turn(to: .landscapeLeft)
+
+        card("9 of clubs").tap()
+        XCTAssertTrue(app.staticTexts["Moves: 1"].waitForExistence(timeout: 2))
+        XCTAssertTrue(card("9 of clubs").isHittable)
+
+        turn(to: .portrait)
+        app.buttons["Undo"].tap()
+        XCTAssertTrue(app.staticTexts["Moves: 0"].waitForExistence(timeout: 2))
     }
 }

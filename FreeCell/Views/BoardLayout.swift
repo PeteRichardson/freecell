@@ -2,12 +2,24 @@ import CoreGraphics
 
 /// Where each pile and card goes on a board of a given size.
 struct BoardLayout {
+    /// Where the free cells and foundations go.
+    enum Arrangement {
+        /// In one row above the columns. Good for tall screens.
+        case topRow
+        /// In a 2×2 block on each side of the columns, so that the columns use the full height.
+        /// Good for wide, short screens, such as an iPhone in landscape.
+        case sides
+    }
+
     static let cardAspect: CGFloat = 1.5
     /// The part of a covered card that shows, as a fraction of card height. It shows the corner index.
     static let preferredOverlap: CGFloat = 0.26
     static let minimumOverlap: CGFloat = 0.1
+    /// The longest possible column: seven dealt cards, then a king down to a two.
+    static let longestColumn = 19
 
     let size: CGSize
+    let arrangement: Arrangement
     let cardSize: CGSize
     let gap: CGFloat
     private let originX: CGFloat
@@ -18,14 +30,34 @@ struct BoardLayout {
         self.size = size
         gap = max(4, min(16, size.width * 0.012))
         let columns = CGFloat(Board.cascadeCount)
-        let widthLimit = (size.width - gap * (columns + 1)) / columns
-        // Leave room for the top row and a full starting column of seven cards.
-        let heightLimit = (size.height - gap * 3) / (Self.cardAspect * (2 + 6 * Self.preferredOverlap))
-        let width = max(10, min(widthLimit, heightLimit))
+        // A column needs room for the first seven cards at the preferred overlap,
+        // and for the longest column at the minimum overlap. The value is in card heights.
+        let columnHeight = max(1 + 6 * Self.preferredOverlap, 1 + CGFloat(Self.longestColumn - 1) * Self.minimumOverlap)
+
+        let topRowWidth = min(
+            (size.width - gap * (columns + 1)) / columns,
+            (size.height - gap * 3.5) / (Self.cardAspect * (1 + columnHeight))
+        )
+        // Two columns on each side, with one more gap between the blocks and the columns.
+        let sidesWidth = min(
+            (size.width - gap * (columns + 7)) / (columns + 4),
+            (size.height - gap * 2) / (Self.cardAspect * columnHeight),
+            (size.height - gap * 3) / (Self.cardAspect * 2)
+        )
+        // The side blocks give the columns much more height, so they win when the cards are almost as large.
+        arrangement = sidesWidth > topRowWidth * 0.9 ? .sides : .topRow
+
+        let width = max(10, arrangement == .sides ? sidesWidth : topRowWidth)
         cardSize = CGSize(width: width, height: width * Self.cardAspect)
-        originX = (size.width - (width * columns + gap * (columns - 1))) / 2
         topY = gap
-        cascadeY = topY + cardSize.height + gap * 1.5
+        switch arrangement {
+        case .topRow:
+            originX = (size.width - (width * columns + gap * (columns - 1))) / 2
+            cascadeY = topY + cardSize.height + gap * 1.5
+        case .sides:
+            originX = (size.width - (width * (columns + 4) + gap * (columns + 5))) / 2
+            cascadeY = topY
+        }
     }
 
     var cornerRadius: CGFloat { cardSize.width * 0.06 }
@@ -36,14 +68,30 @@ struct BoardLayout {
 
     /// The rectangle of the empty pile, or of its first card.
     func slotRect(_ pile: Pile) -> CGRect {
-        switch pile {
-        case .freeCell(let i):
-            CGRect(origin: CGPoint(x: columnX(i), y: topY), size: cardSize)
-        case .foundation(let i):
-            CGRect(origin: CGPoint(x: columnX(Board.freeCellCount + i), y: topY), size: cardSize)
-        case .cascade(let i):
-            CGRect(origin: CGPoint(x: columnX(i), y: cascadeY), size: cardSize)
+        switch (arrangement, pile) {
+        case (.topRow, .freeCell(let i)):
+            rect(x: columnX(i), y: topY)
+        case (.topRow, .foundation(let i)):
+            rect(x: columnX(Board.freeCellCount + i), y: topY)
+        case (.topRow, .cascade(let i)):
+            rect(x: columnX(i), y: cascadeY)
+        case (.sides, .freeCell(let i)):
+            blockRect(firstColumn: 0, index: i)
+        case (.sides, .foundation(let i)):
+            blockRect(firstColumn: 2 + Board.cascadeCount, index: i, extraGaps: 2)
+        case (.sides, .cascade(let i)):
+            rect(x: columnX(2 + i) + gap, y: cascadeY)
         }
+    }
+
+    private func rect(x: CGFloat, y: CGFloat) -> CGRect {
+        CGRect(origin: CGPoint(x: x, y: y), size: cardSize)
+    }
+
+    /// A pile in a 2×2 block at the side of the board.
+    private func blockRect(firstColumn: Int, index: Int, extraGaps: CGFloat = 0) -> CGRect {
+        rect(x: columnX(firstColumn + index % 2) + gap * extraGaps,
+             y: topY + CGFloat(index / 2) * (cardSize.height + gap))
     }
 
     /// The distance between cards in a column. Long columns get closer together so that they fit.

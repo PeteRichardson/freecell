@@ -14,6 +14,7 @@ other FreeCell programs.
 - Sequences move as one "supermove". The largest size is (empty free cells + 1) × 2^(empty columns).
 - Cards that no other card can need go to the foundations automatically.
 - **Undo** reverses the last move. **New Game** asks before it abandons a game in progress.
+- The board works in portrait and landscape. On a wide, short screen (an iPhone in landscape), the free cells and foundations move to the sides, so that the columns have more height.
 
 ## Build
 
@@ -39,7 +40,7 @@ Debug builds accept two launch arguments (set them in the scheme, under *Run > A
 | `FreeCell/Model/GameModel.swift` | Game state, undo, automatic moves |
 | `FreeCell/Views/` | SwiftUI views: board layout, drag and drop, victory screen |
 | `FreeCellTests/` | Unit tests of the rules and the game model |
-| `FreeCellUITests/` | UI tests: tap, drag, illegal drag, New Game confirmation |
+| `FreeCellUITests/` | UI tests: tap, drag, illegal drag, New Game confirmation, landscape |
 | `scripts/make_assets.sh` | Makes the card images from the SVG files |
 
 ## Card art
