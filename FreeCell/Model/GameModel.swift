@@ -19,6 +19,8 @@ final class GameModel {
     private var autoplayTask: Task<Void, Never>?
     private var messageTask: Task<Void, Never>?
 
+    /// The difficulty of the deal on the board, or nil if the deal has no rating.
+    var difficulty: Difficulty? { Deal.difficulty(of: dealNumber) }
     var isWon: Bool { board.isWon }
     var canUndo: Bool { !history.isEmpty && !isAutoplaying && !isWon }
     /// True when a new game would throw away the player's work.
@@ -26,7 +28,7 @@ final class GameModel {
 
     static let moveAnimation = Animation.easeInOut(duration: 0.22)
 
-    init(dealNumber: Int = Deal.randomNumber()) {
+    init(dealNumber: Int) {
         self.dealNumber = dealNumber
         self.board = Deal.board(number: dealNumber)
         startAutoplay()
@@ -38,9 +40,10 @@ final class GameModel {
         self.board = board
     }
 
-    /// The game at app launch. In a debug build, the launch argument `-nearlyWon` gives a game
-    /// that wins by itself, to show the victory screen, and `-deal <number>` gives a known deal.
-    static func forLaunch() -> GameModel {
+    /// The game at app launch: a random deal of the given difficulty. In a debug build, the launch
+    /// argument `-nearlyWon` gives a game that wins by itself, to show the victory screen, and
+    /// `-deal <number>` gives a known deal.
+    static func forLaunch(difficulty: Difficulty) -> GameModel {
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
         if let i = arguments.firstIndex(of: "-deal"), i + 1 < arguments.count, let number = Int(arguments[i + 1]) {
@@ -55,7 +58,7 @@ final class GameModel {
             return game
         }
         #endif
-        return GameModel()
+        return GameModel(dealNumber: Deal.randomNumber(difficulty: difficulty))
     }
 
     /// Waits until the automatic moves to the foundations are done. For tests.
@@ -63,7 +66,12 @@ final class GameModel {
         await autoplayTask?.value
     }
 
-    func newGame(number: Int = Deal.randomNumber()) {
+    /// Starts a random deal of the given difficulty.
+    func newGame(difficulty: Difficulty) {
+        newGame(number: Deal.randomNumber(difficulty: difficulty))
+    }
+
+    func newGame(number: Int) {
         autoplayTask?.cancel()
         isAutoplaying = false
         history.removeAll()

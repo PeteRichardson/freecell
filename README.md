@@ -48,6 +48,9 @@ The app is not on the App Store. You build it from source and install it with Xc
 - **Safe automatic moves** — a card goes to its foundation by itself when no other card can
   need it.
 - **Microsoft deal numbers** — deals 1 to 32000, without the unsolvable deal #11982.
+- **Easy, Medium and Hard games** — each deal has a fixed difficulty, from how much work a
+  solver needs to solve it. A new game is a random deal of the difficulty you select. The
+  default is Easy, and iCloud syncs your selection to your other devices.
 - **Undo** for each move, and a confirmation before **New Game** abandons a game in progress.
 - **Victory screen** with falling suit symbols.
 - **Portrait and landscape** — on a wide, short screen (an iPhone in landscape), the free
@@ -75,8 +78,10 @@ open freecell/FreeCell.xcodeproj
 Select the `FreeCell` scheme and your iPad (or a simulator), then press ⌘R.
 
 To install on your own device, select your team under *Signing & Capabilities* for the
-`FreeCell` target. With a free Apple ID the app stops after 7 days, and you must install it
-again from Xcode. With a paid developer account it works for one year.
+`FreeCell` target. The app uses the iCloud key-value store to sync the difficulty setting, so
+signing needs a paid Apple Developer Program membership. With a free Apple ID, remove the
+iCloud capability (the `CODE_SIGN_ENTITLEMENTS` setting) first: the setting is then kept on
+the device only, and the app stops after 7 days.
 
 Command line (simulator build):
 
@@ -89,7 +94,9 @@ xcodebuild -project FreeCell.xcodeproj -scheme FreeCell -configuration Release \
 
 ## Quick Start
 
-The app starts with a new random deal. The game number and the move count show at the top.
+The app starts with a new random deal at the selected difficulty (Easy the first time). The
+game number, its difficulty and the move count show at the top, for example
+"Game #617 · Hard".
 The four empty slots on the left are the free cells. The four slots with an "A" are the
 foundations, which you build up from ace to king in one suit.
 
@@ -104,7 +111,8 @@ To win, move all 52 cards to the foundations.
 |-------|--------|
 | Tap a card | Moves the card, and the cards on it, to the best legal place: a foundation first, then a column, then a free cell |
 | Drag a card or sequence | Moves it to the pile below it. A yellow frame shows a legal place to drop. An illegal drop goes back with a message |
-| **New Game** | Starts a new random deal. During a game, it asks "Abandon this game?" first |
+| **New Game** (tap) | Starts a new random deal at the selected difficulty. During a game, it asks "Abandon this game?" first |
+| **New Game** (touch and hold) | Opens a menu to select Easy, Medium or Hard. The current game does not change; the next new game uses the selection |
 | **Undo** | Reverses the last move. Not available during automatic moves |
 
 On a narrow screen (iPhone), the **New Game** and **Undo** buttons show only their icons.
@@ -151,12 +159,18 @@ Or press ⌘U in Xcode. The scheme runs the unit tests (Swift Testing) and the U
 | --- | --- |
 | `FreeCell/Model/Board.swift` | The rules: legal moves, supermoves, safe automatic moves |
 | `FreeCell/Model/Deal.swift` | Microsoft-numbered deals |
+| `FreeCell/Model/Difficulty.swift` | The difficulty of each deal, read from `FreeCell/DealDifficulty.txt` |
+| `FreeCell/Model/DifficultySetting.swift` | The selected difficulty, synced with iCloud |
 | `FreeCell/Model/GameModel.swift` | Game state, undo, automatic moves |
 | `FreeCell/Views/BoardLayout.swift` | Card positions for each screen size and orientation |
 | `FreeCell/Views/` | Other SwiftUI views: drag and drop, victory screen |
 | `FreeCellTests/` | Unit tests of the rules, the game model and the layout |
 | `FreeCellUITests/` | UI tests: tap, drag, illegal drag, New Game confirmation, landscape |
+| `scripts/rate_deals.sh` | Makes `FreeCell/DealDifficulty.txt` again with [Freecell Solver](https://fc-solve.shlomifish.org) (about 1 minute). See the script for its build needs |
 | `scripts/make_assets.sh` | Makes the card images from the SVG files (needs `librsvg`: `brew install librsvg`) |
+
+The words the code uses are in [GLOSSARY.md](GLOSSARY.md), and the reasons for the deal
+ratings are in [docs/adr](docs/adr).
 
 Please open an issue before you start a large change.
 
@@ -169,3 +183,6 @@ The code is licensed under the **MIT License** — see [LICENSE](LICENSE) for de
 The card images are the "English pattern" playing cards by Dmitry Fomin, from
 [Wikimedia Commons](https://commons.wikimedia.org/wiki/Category:SVG_English_pattern_playing_cards).
 They are released under CC0 (public domain).
+
+The deal difficulties come from [Freecell Solver](https://fc-solve.shlomifish.org) by Shlomi
+Fish (MIT License), which `scripts/rate_deals.sh` runs. The app does not contain the solver.

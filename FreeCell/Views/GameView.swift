@@ -1,9 +1,16 @@
 import SwiftUI
 
 struct GameView: View {
-    @State private var game = GameModel.forLaunch()
+    @State private var setting: DifficultySetting
+    @State private var game: GameModel
     @State private var isConfirmingNewGame = false
     @Environment(\.horizontalSizeClass) private var sizeClass
+
+    init() {
+        let setting = DifficultySetting()
+        _setting = State(initialValue: setting)
+        _game = State(initialValue: GameModel.forLaunch(difficulty: setting.difficulty))
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -16,8 +23,8 @@ struct GameView: View {
         .overlay(alignment: .bottom) { messageBanner }
         .overlay {
             if game.isWon {
-                VictoryView(dealNumber: game.dealNumber, moveCount: game.moveCount) {
-                    game.newGame()
+                VictoryView(dealNumber: game.dealNumber, difficulty: game.difficulty, moveCount: game.moveCount) {
+                    startNewGame()
                 }
                 .transition(.opacity)
             }
@@ -26,7 +33,7 @@ struct GameView: View {
         .sensoryFeedback(.error, trigger: game.refusedMoveCount)
         .sensoryFeedback(.success, trigger: game.isWon) { _, won in won }
         .alert("Abandon this game?", isPresented: $isConfirmingNewGame) {
-            Button("New Game", role: .destructive) { game.newGame() }
+            Button("New Game", role: .destructive, action: startNewGame)
             Button("Keep Playing", role: .cancel) {}
         } message: {
             Text("This game is not finished. If you start a new game, you lose your progress.")
@@ -45,15 +52,17 @@ struct GameView: View {
 
     private var toolbarContent: some View {
         HStack {
-            Button(action: requestNewGame) {
-                Label("New Game", systemImage: "rectangle.stack.badge.plus")
-            }
+            newGameMenu
             Spacer()
-            Text("Game #\(String(game.dealNumber))")
+            // On a narrow screen, the title becomes smaller before it goes onto two lines.
+            Text(title)
                 .font(.headline)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
             Text("Moves: \(game.moveCount)")
                 .font(.headline.monospacedDigit())
-                .padding(.leading, 16)
+                .lineLimit(1)
+                .padding(.leading, sizeClass == .compact ? 8 : 16)
             Spacer()
             Button(action: game.undo) {
                 Label("Undo", systemImage: "arrow.uturn.backward")
@@ -65,6 +74,32 @@ struct GameView: View {
         .foregroundStyle(.white)
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
+    }
+
+    /// A tap starts a new game. A long press opens the menu, where the player selects the
+    /// difficulty of the next new game. A change of difficulty does not change the current game.
+    private var newGameMenu: some View {
+        Menu {
+            Picker("Difficulty", selection: $setting.difficulty) {
+                ForEach(Difficulty.allCases) { difficulty in
+                    Text(difficulty.name).tag(difficulty)
+                }
+            }
+            Button(action: requestNewGame) {
+                Label("New \(setting.difficulty.name) Game", systemImage: "rectangle.stack.badge.plus")
+            }
+        } label: {
+            Label("New Game", systemImage: "rectangle.stack.badge.plus")
+        } primaryAction: {
+            requestNewGame()
+        }
+    }
+
+    /// The deal number and its difficulty, for example "Game #617 · Hard".
+    private var title: String {
+        let number = "Game #\(String(game.dealNumber))"
+        guard let difficulty = game.difficulty else { return number }
+        return "\(number) · \(difficulty.name)"
     }
 
     @ViewBuilder
@@ -85,8 +120,12 @@ struct GameView: View {
         if game.isInProgress {
             isConfirmingNewGame = true
         } else {
-            game.newGame()
+            startNewGame()
         }
+    }
+
+    private func startNewGame() {
+        game.newGame(difficulty: setting.difficulty)
     }
 }
 

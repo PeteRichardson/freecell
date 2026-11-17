@@ -6,12 +6,6 @@ enum Deal {
     /// The one Microsoft deal in 1...32000 that nobody can solve.
     static let unsolvable = 11982
 
-    static func randomNumber() -> Int {
-        var number: Int
-        repeat { number = Int.random(in: range) } while number == unsolvable
-        return number
-    }
-
     static func board(number: Int) -> Board {
         var seed = UInt32(truncatingIfNeeded: number)
         func next() -> Int {

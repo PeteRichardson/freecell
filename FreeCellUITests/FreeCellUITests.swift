@@ -1,6 +1,6 @@
 import XCTest
 
-/// Plays a few moves on Microsoft deal #1. Its bottom cards are
+/// Plays a few moves on Microsoft deal #1, which is a Medium deal. Its bottom cards are
 /// 6♠ 9♣ 2♥ 6♥ 6♣ 3♦ 8♣ 10♣, and there are no free columns.
 final class FreeCellUITests: XCTestCase {
     private var app: XCUIApplication!
@@ -31,7 +31,7 @@ final class FreeCellUITests: XCTestCase {
     }
 
     func testTapSendsCardToFreeCell() {
-        XCTAssertTrue(app.staticTexts["Game #1"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Game #1 · Medium"].waitForExistence(timeout: 5))
         // No column takes the 9 of clubs, so a tap puts it in a free cell.
         card("9 of clubs").tap()
         XCTAssertTrue(app.staticTexts["Moves: 1"].waitForExistence(timeout: 2))
@@ -41,7 +41,7 @@ final class FreeCellUITests: XCTestCase {
     }
 
     func testDragToFreeCellAndIllegalDragIsRefused() {
-        XCTAssertTrue(app.staticTexts["Game #1"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Game #1 · Medium"].waitForExistence(timeout: 5))
         // Drag the 6 of spades straight up to the first free cell, which is above its column.
         let sixOfSpades = card("6 of spades")
         let start = sixOfSpades.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
@@ -58,7 +58,7 @@ final class FreeCellUITests: XCTestCase {
     }
 
     func testNewGameAsksBeforeAbandoningGame() {
-        XCTAssertTrue(app.staticTexts["Game #1"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Game #1 · Medium"].waitForExistence(timeout: 5))
         card("9 of clubs").tap()
         XCTAssertTrue(app.staticTexts["Moves: 1"].waitForExistence(timeout: 2))
 
@@ -66,17 +66,17 @@ final class FreeCellUITests: XCTestCase {
         let alert = app.alerts["Abandon this game?"]
         XCTAssertTrue(alert.waitForExistence(timeout: 2))
         alert.buttons["Keep Playing"].tap()
-        XCTAssertTrue(app.staticTexts["Game #1"].exists)
+        XCTAssertTrue(app.staticTexts["Game #1 · Medium"].exists)
 
         app.buttons["New Game"].tap()
         XCTAssertTrue(alert.waitForExistence(timeout: 2))
         alert.buttons["New Game"].tap()
         XCTAssertTrue(app.staticTexts["Moves: 0"].waitForExistence(timeout: 2))
-        XCTAssertFalse(app.staticTexts["Game #1"].exists)
+        XCTAssertFalse(app.staticTexts["Game #1 · Medium"].exists)
     }
 
     func testPlayInLandscapeThenTurnBack() {
-        XCTAssertTrue(app.staticTexts["Game #1"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Game #1 · Medium"].waitForExistence(timeout: 5))
         turn(to: .landscapeLeft)
 
         card("9 of clubs").tap()
@@ -86,5 +86,28 @@ final class FreeCellUITests: XCTestCase {
         turn(to: .portrait)
         app.buttons["Undo"].tap()
         XCTAssertTrue(app.staticTexts["Moves: 0"].waitForExistence(timeout: 2))
+    }
+
+    /// Opens the New Game menu with a long press and selects a difficulty.
+    private func select(_ difficulty: String) {
+        app.buttons["New Game"].press(forDuration: 1.0)
+        let item = app.buttons[difficulty]
+        XCTAssertTrue(item.waitForExistence(timeout: 2))
+        item.tap()
+    }
+
+    func testDifficultyAppliesToTheNextNewGame() {
+        XCTAssertTrue(app.staticTexts["Game #1 · Medium"].waitForExistence(timeout: 5))
+        select("Hard")
+        // The current game does not change.
+        XCTAssertTrue(app.staticTexts["Game #1 · Medium"].waitForExistence(timeout: 2))
+
+        app.buttons["New Game"].tap()
+        let hardGame = app.staticTexts.matching(NSPredicate(format: "label ENDSWITH %@", "· Hard")).firstMatch
+        XCTAssertTrue(hardGame.waitForExistence(timeout: 2))
+        XCTAssertFalse(app.staticTexts["Game #1 · Medium"].exists)
+
+        // Put the default back for the next run.
+        select("Easy")
     }
 }

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct VictoryView: View {
     let dealNumber: Int
+    let difficulty: Difficulty?
     let moveCount: Int
     let onNewGame: () -> Void
 
@@ -12,7 +13,7 @@ struct VictoryView: View {
             VStack(spacing: 16) {
                 Text("You Won!")
                     .font(.system(size: 56, weight: .bold, design: .serif))
-                Text("You solved game #\(String(dealNumber)) in \(moveCount) moves.")
+                Text("You solved \(difficulty.map { $0.name.lowercased() + " " } ?? "")game #\(String(dealNumber)) in \(moveCount) moves.")
                     .font(.title3)
                     .multilineTextAlignment(.center)
                 Button("New Game", action: onNewGame)
@@ -81,6 +82,6 @@ private struct ConfettiView: View {
 }
 
 #Preview {
-    VictoryView(dealNumber: 617, moveCount: 92) {}
+    VictoryView(dealNumber: 617, difficulty: .hard, moveCount: 92) {}
         .background(Felt())
 }
