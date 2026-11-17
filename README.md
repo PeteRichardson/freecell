@@ -7,7 +7,7 @@
 > _Classic FreeCell solitaire for iPad and iPhone. No ads, no purchases._
 
 <p align="center">
-  <img src="docs/images/ipad-landscape.png" alt="FreeCell on an iPad in landscape, at the start of game #1" width="800">
+  <img src="docs/images/ipad-landscape.png" alt="FreeCell on an iPad in landscape, at the start of game #1, a Medium deal" width="800">
 </p>
 
 FreeCell is a SwiftUI app that plays the standard FreeCell game from
