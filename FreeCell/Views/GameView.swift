@@ -4,7 +4,13 @@ struct GameView: View {
     @State private var setting: DifficultySetting
     @State private var game: GameModel
     @State private var isConfirmingNewGame = false
+    #if os(iOS)
     @Environment(\.horizontalSizeClass) private var sizeClass
+    /// A narrow screen, such as an iPhone in portrait.
+    private var isCompact: Bool { sizeClass == .compact }
+    #else
+    private let isCompact = false
+    #endif
 
     init() {
         let setting = DifficultySetting()
@@ -38,12 +44,18 @@ struct GameView: View {
         } message: {
             Text("This game is not finished. If you start a new game, you lose your progress.")
         }
+        .focusedSceneValue(\.gameActions, GameActions(
+            canUndo: game.canUndo,
+            difficulty: $setting.difficulty,
+            newGame: requestNewGame,
+            undo: game.undo
+        ))
     }
 
     @ViewBuilder
     private var toolbar: some View {
         // A narrow screen (iPhone) has room for the button icons only.
-        if sizeClass == .compact {
+        if isCompact {
             toolbarContent.labelStyle(.iconOnly)
         } else {
             toolbarContent
@@ -62,7 +74,7 @@ struct GameView: View {
             Text("Moves: \(game.moveCount)")
                 .font(.headline.monospacedDigit())
                 .lineLimit(1)
-                .padding(.leading, sizeClass == .compact ? 8 : 16)
+                .padding(.leading, isCompact ? 8 : 16)
             Spacer()
             Button(action: game.undo) {
                 Label("Undo", systemImage: "arrow.uturn.backward")

@@ -4,7 +4,7 @@
 
 # FreeCell
 
-> _Classic FreeCell solitaire for iPad and iPhone. No ads, no purchases._
+> _Classic FreeCell solitaire for iPad, iPhone and Mac. No ads, no purchases._
 
 <p align="center">
   <img src="docs/images/ipad-landscape.png" alt="FreeCell on an iPad in landscape, at the start of game #1, a Medium deal" width="800">
@@ -55,6 +55,8 @@ The app is not on the App Store. You build it from source and install it with Xc
 - **Victory screen** with falling suit symbols.
 - **Portrait and landscape** — on a wide, short screen (an iPhone in landscape), the free
   cells and foundations move to the sides, so that the columns have more height.
+- **A real Mac app** — the same SwiftUI code runs as a native macOS app, with a resizable
+  window and menu bar commands: **New Game** (⌘N), **Undo** (⌘Z) and a **Difficulty** menu.
 - **Traditional card art** — English-pattern court cards (CC0).
 
 ---
@@ -63,7 +65,7 @@ The app is not on the App Store. You build it from source and install it with Xc
 
 - **Xcode**: the project uses Swift 6 and the Xcode 16 project format. It is built and tested
   with Xcode 27.2.
-- **Runs on**: iPadOS 17 or iOS 17 or later, on iPad and iPhone.
+- **Runs on**: iPadOS 17 or iOS 17 or later, on iPad and iPhone, and macOS 14 or later.
 - **Apple ID** in Xcode, to sign the app for your own device.
 
 ---
@@ -75,19 +77,24 @@ git clone https://github.com/PeteRichardson/freecell.git
 open freecell/FreeCell.xcodeproj
 ```
 
-Select the `FreeCell` scheme and your iPad (or a simulator), then press ⌘R.
+Select the `FreeCell` scheme and your iPad, **My Mac** or a simulator, then press ⌘R.
 
 To install on your own device, select your team under *Signing & Capabilities* for the
 `FreeCell` target. The app uses the iCloud key-value store to sync the difficulty setting, so
 signing needs a paid Apple Developer Program membership. With a free Apple ID, remove the
 iCloud capability (the `CODE_SIGN_ENTITLEMENTS` setting) first: the setting is then kept on
-the device only, and the app stops after 7 days.
+the device only. On iPad and iPhone, the app then stops after 7 days.
 
-Command line (simulator build):
+Command line:
 
 ```sh
+# iPad simulator
 xcodebuild -project FreeCell.xcodeproj -scheme FreeCell -configuration Release \
   -destination 'platform=iOS Simulator,name=iPad Pro 13-inch (M5)' build
+
+# Mac
+xcodebuild -project FreeCell.xcodeproj -scheme FreeCell -configuration Release \
+  -destination 'platform=macOS' -allowProvisioningUpdates build
 ```
 
 ---
@@ -103,20 +110,35 @@ foundations, which you build up from ace to king in one suit.
 To start, tap the bottom card of a column. The app moves it to the best legal place.
 To win, move all 52 cards to the foundations.
 
+On a Mac, the game is in one window. Closing the window quits the app.
+
+<p align="center">
+  <img src="docs/images/mac.png" alt="FreeCell on a Mac, at the start of game #1, a Medium deal" width="600">
+</p>
+
 ---
 
 ## Controls
+
+On a Mac, a click is the same as a tap.
 
 | Input | Effect |
 |-------|--------|
 | Tap a card | Moves the card, and the cards on it, to the best legal place: a foundation first, then a column, then a free cell |
 | Drag a card or sequence | Moves it to the pile below it. A yellow frame shows a legal place to drop. An illegal drop goes back with a message |
 | **New Game** (tap) | Starts a new random deal at the selected difficulty. During a game, it asks "Abandon this game?" first |
-| **New Game** (touch and hold) | Opens a menu to select Easy, Medium or Hard. The current game does not change; the next new game uses the selection |
+| **New Game** (touch and hold; on a Mac, the arrow) | Opens a menu to select Easy, Medium or Hard. The current game does not change; the next new game uses the selection |
 | **Undo** | Reverses the last move. Not available during automatic moves |
 
 On a narrow screen (iPhone), the **New Game** and **Undo** buttons show only their icons.
-The app has no keyboard shortcuts.
+
+On a Mac, the menu bar has the same commands:
+
+| Menu command | Shortcut |
+|--------------|----------|
+| File > New Game | ⌘N |
+| Edit > Undo | ⌘Z |
+| Difficulty > Easy, Medium, Hard | — |
 
 ---
 
@@ -133,12 +155,15 @@ Debug builds accept two launch arguments. Set them in the scheme, under *Run > A
 
 ## Known Limitations
 
-- **No saved game**: the app does not save the game. If iOS stops the app, the next launch
+- **No saved game**: the app does not save the game. If the app stops, the next launch
   starts a new deal.
 - **No statistics, hints or solver**: the app does not count wins and does not suggest moves.
 - **No deal selection in the app**: you can choose a deal number only with the `-deal`
   launch argument in a debug build.
-- **Simulator only**: the app is tested in the iPad and iPhone simulators, not on a real device.
+- **Not tested on a real iPad or iPhone**: the app is tested in the iPad and iPhone
+  simulators and on a Mac.
+- **No UI tests on a Mac**: the UI tests are for iPad and iPhone only. On a Mac, run the unit
+  tests with `-only-testing:FreeCellTests`.
 - **Small cards on iPhone**: eight columns on an iPhone screen give small cards.
 
 <!-- 🖊 TODO: Review and expand. -->
@@ -154,6 +179,11 @@ xcodebuild -scheme FreeCell -destination 'platform=iOS Simulator,name=iPad Pro 1
 ```
 
 Or press ⌘U in Xcode. The scheme runs the unit tests (Swift Testing) and the UI tests (XCTest).
+On a Mac, run the unit tests only:
+
+```sh
+xcodebuild -scheme FreeCell -destination 'platform=macOS' -only-testing:FreeCellTests test
+```
 
 | Path | Contents |
 | --- | --- |
@@ -162,6 +192,7 @@ Or press ⌘U in Xcode. The scheme runs the unit tests (Swift Testing) and the U
 | `FreeCell/Model/Difficulty.swift` | The difficulty of each deal, read from `FreeCell/DealDifficulty.txt` |
 | `FreeCell/Model/DifficultySetting.swift` | The selected difficulty, synced with iCloud |
 | `FreeCell/Model/GameModel.swift` | Game state, undo, automatic moves |
+| `FreeCell/Views/GameCommands.swift` | Menu bar commands: New Game, Undo, Difficulty |
 | `FreeCell/Views/BoardLayout.swift` | Card positions for each screen size and orientation |
 | `FreeCell/Views/` | Other SwiftUI views: drag and drop, victory screen |
 | `FreeCellTests/` | Unit tests of the rules, the game model and the layout |
